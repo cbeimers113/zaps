@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": "editor",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/include/SDL2"
+            ],
+            "compilerPath": "/usr/bin/cc",
+            "cStandard": "c11",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
