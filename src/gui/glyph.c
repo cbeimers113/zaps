@@ -1,9 +1,6 @@
-#include <stdint.h>
-
-#include "common.h"
 #include "glyph.h"
 
-// Render a glyph at a given position and scale to the pixel buffer
+// Render a glyph at a given position and size to the pixel buffer
 void glyph_render(int x, int y, char index, int size, uint32_t *buffer)
 {
     if (!buffer || (size != GLYPH_SIZE_16 && size != GLYPH_SIZE_32))

@@ -5,9 +5,9 @@
 
 #include <SDL2/SDL.h>
 
-#include "glyph.h"
 #include "input.h"
 #include "simulation.h"
+#include "text.h"
 
 #define BOUNDS_CHECK(x, y)                                                 \
     if ((x) < 0 || (x) >= WIDTH * CELL || (y) < 0 || (y) >= HEIGHT * CELL) \

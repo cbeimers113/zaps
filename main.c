@@ -90,38 +90,7 @@ void sim_render(SDL_Renderer *renderer, uint32_t *buffer)
 {
     uint8_t *cells = sim_get()->cells;
 
-    // Draw background
-    SDL_SetRenderDrawColor(renderer, 20, 20, 30, 255);
-    SDL_RenderClear(renderer);
-
-    // Render cell grid
-    SDL_SetRenderDrawColor(renderer, 220, 60, 60, 255);
-    for (int gy = 0; gy < HEIGHT; gy++)
-    {
-        for (int gx = 0; gx < WIDTH; gx++)
-        {
-            if (cells && cells[gy * WIDTH + gx])
-            {
-                SDL_Rect rect = {.x = gx * CELL, .y = gy * CELL, .w = CELL, .h = CELL};
-                SDL_RenderFillRect(renderer, &rect);
-            }
-        }
-    }
-
-    int padding = 5;
-
-    // Draw glyph selection menu on left
-    for (int i = 0; i < 26; i++)
-    {
-        int x16 = padding + i * (GLYPH_SIZE_16 + padding);
-        int y16 = padding;
-
-        int x32 = padding + i * (GLYPH_SIZE_32 + padding);
-        int y32 = padding * 2 + GLYPH_SIZE_16;
-
-        glyph_render(x16, y16, 'A' + i, GLYPH_SIZE_16, buffer);
-        glyph_render(x32, y32, 'A' + i, GLYPH_SIZE_32, buffer);
-    }
+    text_render(WIDTH * CELL/2, HEIGHT * CELL / 2, "Hello, world!", GLYPH_SIZE_16, buffer);    
 }
 
 // Draw a pixel to the buffer

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "common.h"
+
 // Glyphs are 16x16 or 32x32 pixels
 #define GLYPH_SIZE_16 16
 #define GLYPH_SIZE_32 32
