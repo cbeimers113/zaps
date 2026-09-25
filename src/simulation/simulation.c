@@ -19,7 +19,7 @@ void sim_update(Input input)
     int x = input.mouseX / CELL;
     int y = input.mouseY / CELL;
 
-        Cell *cell = in_bounds(x, y) ? sim.cells[x + y * WIDTH] : NULL;
+    Cell *cell = in_bounds(x, y) ? sim.cells[x + y * WIDTH] : NULL;
     sim.activeX = x;
     sim.activeY = y;
 
@@ -91,9 +91,9 @@ void sim_update(Input input)
     }
 
     // Update all the cells
-    for (int i = 0; sim.cells[i]; i++)
+    for (int i = 0; i < WIDTH * HEIGHT; i++)
         cell_update(sim.cells[i]);
-    for (int i = 0; sim.cells[i]; i++)
+    for (int i = 0; i < WIDTH * HEIGHT; i++)
         cell_flip(sim.cells[i]);
 }
 
@@ -140,7 +140,7 @@ void sim_render(uint32_t *buffer)
         int tgtY = sim.activeY * CELL + CELL / 2 + tgtYOffs * CELL / 2;
 
         // Find left and right arrow head lines' stop coords
-        float d = 15.0f;
+        float d = 10.0f;
         float theta = 3.0f * 3.14159f / 4.0f;
         float base = atan2f(sim.activeY - sim.srcY, sim.activeX - sim.srcX);
         int arrowLeftX = tgtX + (int)(d * cosf(base - theta));
@@ -166,9 +166,8 @@ void sim_render(uint32_t *buffer)
     // Draw connections
     for (int i = 0; i < sim.numConnections; i++)
     {
-        uint32_t color = (sim.pendingConnection &&
-                          sim.pendingConnection->source &&
-                          sim.pendingConnection->source->state)
+        uint32_t color = (sim.connections[i]->source &&
+                          sim.connections[i]->source->state)
                              ? 0xfff5c9ff
                              : 0x3ebd2dff;
         connection_render(sim.connections[i], color, buffer);

@@ -42,6 +42,9 @@ bool cell_add_input(Cell *cell, Cell *input)
 // Computes new state from inputs, writes to stateBuf instead of in-place
 void cell_update(Cell *cell)
 {
+    if (!cell)
+        return;
+
     // Gather inputs as gate abstractions,
     // BTN and SWCH are special cases
     Inputs inputs;
@@ -75,6 +78,8 @@ void cell_update(Cell *cell)
 // Flips the stateBuf into the active state
 void cell_flip(Cell *cell)
 {
+    if (!cell)
+        return;
     cell->state = cell->stateBuf;
 }
 
