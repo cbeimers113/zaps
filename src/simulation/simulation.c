@@ -7,8 +7,13 @@ static Simulation sim;
 // Initialize the simulation state
 Simulation *sim_init()
 {
+    sim.tickLength = 6;
+    sim.srcX = -1;
+    sim.srcY = -1;
+
     sim.connectionsCapacity = 10;
     sim.connections = (Connection **)malloc(sim.connectionsCapacity * sizeof(Connection *));
+
     return &sim;
 }
 
@@ -35,6 +40,34 @@ void sim_update(Input input)
             cell->state = !cell->state;
     }
 
+    // Delete a gate on left click
+    else if (!input.holdShift && input.read_mouse() == MB_RIGHT && cell)
+    {
+        // Delete any connections attached to this cell
+        for (int i = 0; i < sim.numConnections; i++)
+            if (sim.connections[i]->source == cell || sim.connections[i]->target == cell)
+            {
+                free(sim.connections[i]);
+                sim.connections[i] = sim.connections[sim.numConnections - 1];
+                sim.connections[sim.numConnections - 1] = NULL;
+                sim.numConnections--;
+            }
+
+        // Update cells where this was an input
+        for (int i = 0; i < WIDTH * HEIGHT; i++)
+            if (sim.cells[i] && sim.cells[i] != cell)
+                for (int j = 0; j < sim.cells[i]->numInputs; j++)
+                    if (sim.cells[i]->inputs[j] == cell)
+                    {
+                        sim.cells[i]->inputs[j] = sim.cells[i]->inputs[sim.cells[i]->numInputs - 1];
+                        sim.cells[i]->inputs[sim.cells[i]->numInputs - 1] = NULL;
+                        sim.cells[i]->numInputs--;
+                    }
+
+        cell_free(cell);
+        sim.cells[x + y * WIDTH] = NULL;
+    }
+
     // Drag-n-drop to connect gates, from output to input
     // Check if we need to place the source coordinates
     else if (input.holdShift &&
@@ -48,12 +81,12 @@ void sim_update(Input input)
 
     // Clear connection source x and y when release mouse,
     // create connection if valid target
-    else if (!input.mouse_button())
+    else if (!input.mouse_button() && in_bounds(sim.srcX, sim.srcY))
     {
         Cell *src = sim.cells[sim.srcX + sim.srcY * WIDTH];
         bool connected = false;
 
-        if (src && cell && sim.pendingConnection && cell_add_input(cell, src))
+        if (src && cell && src != cell && sim.pendingConnection && cell_add_input(cell, src))
         {
             // Success, add the connection but grow the connections array if needed
             if (sim.numConnections == sim.connectionsCapacity)
@@ -89,6 +122,12 @@ void sim_update(Input input)
         sim.srcX = -1;
         sim.srcY = -1;
     }
+
+    // Limit updates to tick length
+    if (++sim.ticks % sim.tickLength == 0)
+        sim.ticks = 0;
+    else
+        return;
 
     // Update all the cells
     for (int i = 0; i < WIDTH * HEIGHT; i++)

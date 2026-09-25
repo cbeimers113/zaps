@@ -27,6 +27,9 @@ typedef struct
     Connection **connections;
     int numConnections;
     int connectionsCapacity;
+
+    int ticks;
+    int tickLength;  // measured in 1/60th of a second
 } Simulation;
 
 Simulation *sim_init();
