@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int main(void)
+int main()
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
@@ -28,11 +28,11 @@ int main(void)
         HEIGHT * CELL);
     uint32_t *pixelBuffer = (uint32_t *)malloc(WIDTH * CELL * HEIGHT * CELL * sizeof(uint32_t));
 
-    // Initialize the state
-    sim_init();
+    // Initialize the simulation and gui
+    gui_init(sim_init());
 
     // Setup some parameters
-    int mouse_x = 0, mouse_y = 0;
+    int mouseX = 0, mouseY = 0;
     const float SIM_DT = 1.0f / 60.0f;
     float accumulator = 0.0f;
 
@@ -51,8 +51,8 @@ int main(void)
 
         // Detect input events
         input_update();
-        Uint32 mouse_button = SDL_GetMouseState(&mouse_x, &mouse_y);
-        Input input = input_get(mouse_x, mouse_y, mouse_button);
+        Uint32 mouseB = SDL_GetMouseState(&mouseX, &mouseY);
+        Input input = input_get(mouseX, mouseY, mouseB);
 
         // Track simulation time
         Uint64 now = SDL_GetPerformanceCounter();
@@ -64,12 +64,14 @@ int main(void)
         while (accumulator >= SIM_DT)
         {
             sim_update(input);
+            gui_update(input);
             accumulator -= SIM_DT;
         }
 
         // Render the updated space
         memset(pixelBuffer, 0, WIDTH * CELL * HEIGHT * CELL * sizeof(uint32_t));
-        sim_render(renderer, pixelBuffer);
+        sim_render(pixelBuffer);
+        gui_render(pixelBuffer);
 
         // Copy pixel buffer to GPU texture memory and present the render
         SDL_UpdateTexture(streamingTexture, NULL, pixelBuffer, WIDTH * CELL * sizeof(uint32_t));
@@ -78,60 +80,11 @@ int main(void)
         SDL_RenderPresent(renderer);
     }
 
+    gui_free();
     free(pixelBuffer);
+
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;
-}
-
-// Render the simulation
-void sim_render(SDL_Renderer *renderer, uint32_t *buffer)
-{
-    uint8_t *cells = sim_get()->cells;
-
-    text_render(WIDTH * CELL/2, HEIGHT * CELL / 2, "Hello, world!", GLYPH_SIZE_16, buffer);    
-}
-
-// Draw a pixel to the buffer
-void set_pixel(uint32_t *buffer, int x, int y, uint32_t color)
-{
-    BOUNDS_CHECK(x, y);
-    buffer[x + y * WIDTH * CELL] = color;
-}
-
-// Draw a pixel to the buffer with decomposed RGBA parameters
-void set_pixel_rgba(uint32_t *buffer, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
-{
-    BOUNDS_CHECK(x, y);
-    uint32_t color = (r << 24) | (g << 16) | (b << 8) | a;
-    buffer[x + y * WIDTH * CELL] = color;
-}
-
-// Draw a rectangle to the buffer
-void draw_rectangle(uint32_t *buffer, int x, int y, int w, int h, uint32_t color)
-{
-    for (int yOffs = 0; yOffs < h; yOffs++)
-    {
-        int yy = y + yOffs;
-        if (yy < 0 || yy >= HEIGHT * CELL)
-            continue;
-
-        // Draw left and right edges
-        set_pixel(buffer, x, yy, color);
-        set_pixel(buffer, x + w, yy, color);
-
-        // Draw top and bottom edges
-        if (yOffs > 0 && yOffs < h - 1)
-            continue;
-
-        for (int xOffs = 0; xOffs < w; xOffs++)
-        {
-            int xx = x + xOffs;
-            if (xx < 0 || xx >= WIDTH * CELL)
-                continue;
-
-            set_pixel(buffer, xx, yy, color);
-        }
-    }
 }

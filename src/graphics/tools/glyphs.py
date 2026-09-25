@@ -2,10 +2,15 @@ import argparse
 import math
 from pathlib import Path
 
+from fontTools.ttLib import TTFont
 from PIL import Image, ImageDraw, ImageFont
 
 GLYPH_HEADER_START = "/* GLYPH GENERATION START */"
 GLYPH_HEADER_END = "/* GLYPH GENERATION END */"
+
+DEFAULT_FONT = "/usr/share/fonts/TTF/Hack-Regular.ttf"
+# Used for characters the main font lacks (e.g. U+26A1, U+23FB).
+FALLBACK_FONT = "/usr/share/fonts/TTF/JetBrainsMono-Regular.ttf"
 
 
 def load_font(font_path: str, size: int) -> ImageFont.FreeTypeFont:
@@ -59,6 +64,8 @@ def render_spritesheet(
         raise ValueError("No characters were provided.")
 
     font = load_font(font_path, cell_size)
+    fallback = load_font(FALLBACK_FONT, cell_size)
+    covered = TTFont(font_path).getBestCmap()
 
     rows = math.ceil(len(characters) / columns)
 
@@ -73,6 +80,8 @@ def render_spritesheet(
     )
 
     draw = ImageDraw.Draw(sheet)
+    # No antialiasing: 1-bit glyph edges stay crisp at 16px and 32px.
+    draw.fontmode = "1"
 
     for index, character in enumerate(characters):
         column = index % columns
@@ -81,11 +90,13 @@ def render_spritesheet(
         cell_x = column * cell_size
         cell_y = row * cell_size
 
+        glyph_font = font if ord(character) in covered else fallback
+
         # Get the glyph's bounding box.
         bbox = draw.textbbox(
             (0, 0),
             character,
-            font=font,
+            font=glyph_font,
         )
 
         glyph_width = bbox[2] - bbox[0]
@@ -98,7 +109,7 @@ def render_spritesheet(
         draw.text(
             (x, y),
             character,
-            font=font,
+            font=glyph_font,
             fill=(255, 255, 255, 255),
         )
 
@@ -121,7 +132,7 @@ def glyph_array_name(resolution: int, character: str) -> str:
 def format_glyph_array(resolution: int, character: str, pixels: list[int]) -> str:
     # Glyph/Glyph32 are already sized array typedefs; adding a size here would
     # declare an array-of-Glyph instead of a single flat pixel array.
-    type_name = "Glyph" if resolution == 16 else "Glyph32"
+    type_name = "Glyph16" if resolution == 16 else "Glyph32"
     name = glyph_array_name(resolution, character)
 
     lines = [f"static {type_name} {name} = {{"]
@@ -159,7 +170,6 @@ def build_glyph_generation_block(
     for character in sorted(glyphs_32, key=ord):
         parts.append(format_glyph_array(32, character, glyphs_32[character]))
 
-    parts.append(f"static int NUM_GLYPHS = {len(glyphs_16)};")
     parts.append(format_glyphs_table(16, glyphs_16))
     parts.append(format_glyphs_table(32, glyphs_32))
 
@@ -191,9 +201,10 @@ def read_input_text(value: str) -> str:
     path = Path(value)
 
     if path.is_file():
-        return path.read_text(encoding="utf-8")
+        value = path.read_text(encoding="utf-8")
 
-    return value
+    # Line breaks in the file are layout, not glyphs.
+    return value.replace("\n", "").replace("\r", "")
 
 
 def main():
@@ -208,8 +219,8 @@ def main():
 
     parser.add_argument(
         "--font",
-        required=True,
-        help="Path to a .ttf or .otf font.",
+        default=DEFAULT_FONT,
+        help=f"Path to a .ttf or .otf font (default: {DEFAULT_FONT}).",
     )
 
     parser.add_argument(

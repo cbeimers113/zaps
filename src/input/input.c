@@ -1,11 +1,14 @@
 #include "input.h"
 
-#include <string.h>
+#include <stdio.h>
 
 static Uint8 current[SDL_NUM_SCANCODES];
 static Uint8 previous[SDL_NUM_SCANCODES];
 
-void input_update(void)
+static int mouseButton;
+static int lastMouseButton;
+
+void input_update()
 {
     memcpy(previous, current, sizeof(current));
     memcpy(current, SDL_GetKeyboardState(NULL), sizeof(current));
@@ -16,12 +19,14 @@ static bool pressed(SDL_Scancode code)
     return current[code] && !previous[code];
 }
 
-Input input_get(int mouse_x, int mouse_y, int mouse_button)
+Input input_get(int mouseX, int mouseY, int mouseB)
 {
+    lastMouseButton = mouseButton;
+    mouseButton = mouseB;
+
     return (Input){
-        .mouse_x = mouse_x,
-        .mouse_y = mouse_y,
-        .mouse_button = mouse_button,
+        .mouseX = mouseX,
+        .mouseY = mouseY,
 
         .keys = current,
 
@@ -36,5 +41,22 @@ Input input_get(int mouse_x, int mouse_y, int mouse_button)
         .down = pressed(SDL_SCANCODE_DOWN),
         .left = pressed(SDL_SCANCODE_LEFT),
         .right = pressed(SDL_SCANCODE_RIGHT),
+
+        .holdShift = current[SDL_SCANCODE_LSHIFT],
+
+        .mouse_button = mouse_button,
+        .read_mouse = read_mouse,
     };
+}
+
+// Returns the current state of the mouse button
+int mouse_button()
+{
+    return mouseButton;
+}
+
+// Returns the current state of the mouse button on edge events
+int read_mouse()
+{
+    return mouseButton != lastMouseButton ? mouseButton : 0;
 }
